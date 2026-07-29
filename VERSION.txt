@@ -1,0 +1,4 @@
+FacturasAI BETA 3.1.1 conservadora
+
+Esta versión conserva sin cambios la presentación y la lógica funcional de BETA 3.1.
+El único cambio operativo es la simplificación de requirements.txt para evitar fallos de instalación en Streamlit Cloud.

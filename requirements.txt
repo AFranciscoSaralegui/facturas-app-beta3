@@ -1,19 +1,6 @@
-# FacturasAI - BETA 3.1.1
-
-Aplicación Streamlit para procesar facturas recibidas y emitidas de autónomos en España.
-
-## Archivos
-
-- `app.py`
-- `extractor_v2.py`
-- `excel_exporter.py`
-- `requirements.txt`
-- `.streamlit/config.toml`
-
-## Despliegue en Streamlit Community Cloud
-
-- Rama: `main`
-- Archivo principal: `app.py`
-- Python recomendado: `3.12` desde **Advanced settings** al crear o volver a crear la app.
-
-Esta revisión elimina dependencias no utilizadas (`PyMuPDF`, `pytesseract` y la instalación de Tesseract mediante `packages.txt`) que podían provocar errores durante la construcción en Streamlit Cloud. La versión actual procesa el texto nativo de los PDF mediante `pdfplumber`.
+streamlit>=1.40,<2
+pdfplumber>=0.11,<1
+pandas>=2.1,<3
+openpyxl>=3.1,<4
+python-dateutil>=2.8,<3
+rapidfuzz>=3,<4
