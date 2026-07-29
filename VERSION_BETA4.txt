@@ -1,7 +1,126 @@
-eNTify Invoices BETA 4.0 ADITIVA
+from __future__ import annotations
 
-- No sustituye app.py.
-- No sustituye extractor_v2.py.
-- No sustituye excel_exporter.py.
-- Agrega navegación multipágina y perfiles de autónomos.
-- Fecha: 2026-07-28
+import json
+
+import pandas as pd
+import streamlit as st
+
+from modules.autonomos import dump_autonomos, merge_autonomos, normalize_profile, save_autonomos
+from modules.branding import apply_theme, hero
+from modules.session_manager import get_autonomos, set_autonomos, sidebar_autonomo_selector
+
+st.set_page_config(page_title="Autónomos · eNTify Invoices", page_icon="👤", layout="wide")
+apply_theme()
+sidebar_autonomo_selector()
+hero("Autónomos", "Administrá los perfiles que usa la aplicación para distinguir emisor, cliente y proveedor.")
+
+profiles = get_autonomos()
+
+with st.expander("Agregar autónomo", expanded=not profiles):
+    with st.form("add_autonomo", clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        nombre = c1.text_input("Nombre o razón social *")
+        nif = c2.text_input("NIF/CIF *")
+        c3, c4 = st.columns(2)
+        direccion = c3.text_input("Dirección")
+        codigo_postal = c4.text_input("Código postal")
+        c5, c6, c7 = st.columns(3)
+        ciudad = c5.text_input("Ciudad")
+        pais = c6.text_input("País", value="España")
+        moneda = c7.selectbox("Moneda habitual", ["EUR", "USD", "GBP"], index=0)
+        c8, c9 = st.columns(2)
+        internacional = c8.checkbox("Facturación internacional")
+        clientes_usa = c9.checkbox("Clientes de Estados Unidos")
+        submitted = st.form_submit_button("Agregar autónomo", type="primary")
+        if submitted:
+            if not nombre.strip() or not nif.strip():
+                st.error("Nombre y NIF/CIF son obligatorios.")
+            else:
+                new_profile = normalize_profile({
+                    "nombre": nombre,
+                    "nif": nif,
+                    "direccion": direccion,
+                    "codigo_postal": codigo_postal,
+                    "ciudad": ciudad,
+                    "pais": pais,
+                    "moneda": moneda,
+                    "facturacion_internacional": internacional,
+                    "clientes_usa": clientes_usa,
+                    "activo": True,
+                })
+                updated = merge_autonomos(profiles, [new_profile])
+                set_autonomos(updated)
+                saved = save_autonomos(updated)
+                if saved:
+                    st.success("Autónomo agregado.")
+                else:
+                    st.warning("Se agregó a la sesión, pero el servidor no permitió escribir el JSON.")
+                st.rerun()
+
+st.subheader("Listado")
+columns = [
+    "id", "nombre", "nif", "direccion", "codigo_postal", "ciudad", "pais", "epigrafe",
+    "moneda", "plantilla", "facturacion_internacional", "clientes_usa", "activo", "notas",
+]
+frame = pd.DataFrame(profiles)
+for column in columns:
+    if column not in frame.columns:
+        frame[column] = ""
+frame = frame[columns]
+
+edited = st.data_editor(
+    frame,
+    hide_index=True,
+    use_container_width=True,
+    num_rows="dynamic",
+    disabled=["id"],
+    column_config={
+        "id": st.column_config.TextColumn("ID", disabled=True),
+        "nombre": st.column_config.TextColumn("Nombre / razón social", required=True, width="large"),
+        "nif": st.column_config.TextColumn("NIF/CIF", required=True),
+        "moneda": st.column_config.SelectboxColumn("Moneda", options=["EUR", "USD", "GBP"]),
+        "plantilla": st.column_config.SelectboxColumn("Plantilla", options=["estandar", "internacional"]),
+        "facturacion_internacional": st.column_config.CheckboxColumn("Internacional"),
+        "clientes_usa": st.column_config.CheckboxColumn("Clientes USA"),
+        "activo": st.column_config.CheckboxColumn("Activo"),
+    },
+    key="entify_autonomos_editor",
+)
+
+if st.button("Guardar cambios", type="primary"):
+    records = [normalize_profile(record) for record in edited.to_dict(orient="records") if str(record.get("nombre", "")).strip()]
+    set_autonomos(records)
+    if save_autonomos(records):
+        st.success("Cambios guardados en data/autonomos.json.")
+    else:
+        st.warning("Cambios guardados solo en esta sesión.")
+
+st.divider()
+st.subheader("Copia de seguridad de perfiles")
+st.caption(
+    "En Streamlit Cloud los cambios escritos en el servidor pueden perderse al reiniciar. "
+    "Descargá el JSON y reemplazá data/autonomos.json en GitHub para hacerlos permanentes."
+)
+st.download_button(
+    "Descargar autonomos.json",
+    data=dump_autonomos(get_autonomos()),
+    file_name="autonomos.json",
+    mime="application/json",
+    use_container_width=True,
+)
+
+uploaded_json = st.file_uploader("Importar o actualizar perfiles desde JSON", type=["json"], key="entify_import_autonomos")
+if uploaded_json and st.button("Importar perfiles"):
+    try:
+        incoming = json.loads(uploaded_json.getvalue().decode("utf-8"))
+        if isinstance(incoming, dict):
+            incoming = incoming.get("autonomos", [])
+        if not isinstance(incoming, list):
+            raise ValueError("El archivo debe contener una lista de autónomos.")
+        merged = merge_autonomos(get_autonomos(), incoming)
+        set_autonomos(merged)
+        save_autonomos(merged)
+        st.success(f"Se importaron o actualizaron {len(incoming)} perfiles.")
+        st.rerun()
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        st.error(f"No se pudo importar el archivo: {exc}")
