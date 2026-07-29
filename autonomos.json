@@ -1,0 +1,18 @@
+[
+  {
+    "id": "adam-aizenberg-tirza-60148622b",
+    "nombre": "Adam Aizenberg Tirza",
+    "nif": "60148622B",
+    "direccion": "Calle Moscareta 3, 1º B",
+    "codigo_postal": "28011",
+    "ciudad": "Madrid",
+    "pais": "España",
+    "epigrafe": "",
+    "moneda": "EUR",
+    "plantilla": "estandar",
+    "facturacion_internacional": false,
+    "clientes_usa": false,
+    "activo": true,
+    "notas": ""
+  }
+]
