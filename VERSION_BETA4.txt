@@ -1,0 +1,7 @@
+eNTify Invoices BETA 4.0 ADITIVA
+
+- No sustituye app.py.
+- No sustituye extractor_v2.py.
+- No sustituye excel_exporter.py.
+- Agrega navegación multipágina y perfiles de autónomos.
+- Fecha: 2026-07-28
